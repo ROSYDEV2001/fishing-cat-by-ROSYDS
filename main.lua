@@ -4,11 +4,17 @@ angul = 0
 gato_valores = {
     xcor = 260,
     ycor = 200,
+    xcorold = 0,
+    ycorold = 0,
     scalex = 1,
     scaley = 1,
     red = 255,
     blue = 255,
     green = 255,
+}
+
+menu_valores = {
+    [72] = {escena = 1}
 }
 ANCHO_JUEGO = 500
 ALTO_JUEGO = 400
@@ -21,7 +27,7 @@ accion = 0
 tiempo = 0
 minutos = 0
 segundos = 0
-dial = 0
+dial = 10
 dialDT = 0
 --maps
 mapa_test = require('maps/mapa_test')
@@ -115,14 +121,14 @@ debug = false
 patf = false
 
 --mapas
-escenas = 0
+escenas = 4
 UI_obj_visible = {
-    [0] = {bolsa = false, dinero = false, ui_obj = false, jugador = true, camara = false, movimiento = false, escena = mapa1},
-    [1] = {bolsa = true, dinero = true, ui_obj = true, jugador = true, camara = true, movimiento = true, escena = mapa1},
-    [2] = {bolsa = true, dinero = true, ui_obj = true, jugador = true, camara = true, movimiento = true, escena = city},
-    [3] = {bolsa = false, dinero = true, ui_obj = false, jugador = false, camara = false, movimiento = false, escena = nill},
-    [4] = {bolsa = false, dinero = true, ui_obj = false, jugador = false, camara = false, movimiento = false, escena = nill},
-    [5] = {bolsa = true, dinero = true, ui_obj = true, jugador = true, camara = true, movimiento = true, escena = mapa_test},
+    [0] = {bolsa = false, dinero = false, ui_obj = false, jugador = true, camara = false, movimiento = false, contador = false, escena = mapa1},
+    [1] = {bolsa = true, dinero = true, ui_obj = true, jugador = true, camara = true, movimiento = true, contador = true, escena = mapa1},
+    [2] = {bolsa = true, dinero = true, ui_obj = true, jugador = true, camara = true, movimiento = true, contador = true, escena = city},
+    [3] = {bolsa = false, dinero = true, ui_obj = false, jugador = false, camara = false, movimiento = false, contador = true, escena = nil},
+    [4] = {bolsa = false, dinero = true, ui_obj = false, jugador = true, camara = false, movimiento = false, contador = true, escena = nil},
+    [5] = {bolsa = true, dinero = true, ui_obj = true, jugador = true, camara = true, movimiento = true, contador = true, escena = mapa_test},
 }
 -- metatable que hace que cualquier campo faltante devuelva false
 local mt_flags = {__index = function(_, clave) return false end}
@@ -226,6 +232,8 @@ function love.load()
     fontshop3 = love.graphics.newImage('assets/fondos/fondo_shop2.png')
     fontcustom = love.graphics.newImage('assets/fondos/fondo_custom.png')
     foco_spr = love.graphics.newImage('assets/fondos/spotlight.png')
+    --inicio
+    inicio_font = love.graphics.newImage('assets/inicio/tiles.png')
     --tienda
     faceshop1 = love.graphics.newImage('assets/shop/shop_face1.png')
     selec = love.graphics.newImage('assets/shop/selec.png')
@@ -462,12 +470,12 @@ function love.update(dt)
     function getHitboxEn(px, py)
         return px + hitbox_offset_x, py + hitbox_offset_y, hitbox_ancho, hitbox_alto
     end
-    
-        local jugador_ancho, jugador_alto = 80, 40  -- ajustable según tu sprite
-        local movevalor = UI_obj_visible[escena]
+
+        local movevalor = UI_obj_visible[escenas]
 
     if movevalor then
         if movevalor.movimiento == true then
+            local jugador_ancho, jugador_alto = 80, 40  -- ajustable según tu sprite
 
             if love.keyboard.isDown("left") and accion <= 0 then
                 local nuevoX = gato_valores.xcor - 2.0
@@ -744,11 +752,11 @@ function love.draw(screen)
         love.graphics.pop()
     end
 
-    if escenas == 1 then
-            --love.graphics.draw(testf, 0, 0, 0, 1, 1)
+        if escenas == 0 then
+            love.graphics.draw(inicio_font, 10, 10, 0, 1, 1)
         end
 
-        if escenas == 2 then
+        if escenas == 0 then
             --love.graphics.draw(testcity, 0, 0, 0, 1, 1)
         end
 
@@ -773,11 +781,40 @@ function love.draw(screen)
                 love.graphics.draw(selec, 25, tienda.ysel, 0, 0.2, 0.2)
             end
         end
-
+    
         if escenas == 4 then
             love.graphics.draw(fontcustom, 0, 0, 0, 1, 1)
             love.graphics.draw(foco_spr, 0, 0, 0, 1, 1)
+
+            -- gato encima del fondo y del foco
+            love.graphics.setColor(
+                gato_valores.red / 255,
+                gato_valores.green / 255,
+                gato_valores.blue / 255,
+                1
+            )
+            local sprite_actual = sprites_anim[anim]
+            if sprite_actual then
+                love.graphics.draw(sprites_anim[anim], 340, 250, 0, 2, 2, 64, 64)
+            else
+                love.graphics.draw(tiburocin, 340, 250, 0, 1, 1, 64, 64)
+            end
+
+            love.graphics.setFont(monoft)
+            love.graphics.setColor(0, 0, 0, 1)
             love.graphics.print(text, 25, 50)
+            love.graphics.setColor(1, 1, 1, 1)
+
+            local visible = tienda.visible_selec[dial]
+            if visible == true then
+                love.graphics.draw(selec, 25, tienda.ysel, 0, 0.2, 0.2)
+            end
+        end
+
+        if escenas == 0 then
+            love.graphics.setColor(0, 0, 0, 1)
+            love.graphics.print(text, 25, 50)
+            love.graphics.setColor(1, 1, 1, 1)
             local visible = tienda.visible_selec[dial]
             if visible == true then
                 love.graphics.draw(selec, 25, tienda.ysel, 0, 0.2, 0.2)
@@ -796,8 +833,13 @@ function love.draw(screen)
     if pezitem >= 1 and pezitem <= 4 then
         love.graphics.draw(oneplus, xpez - 64, ypez, 0, 0.5, 0.5)
     end
-    love.graphics.print("Tiempo jugando: (min)" ..minutos, 10, 0)
-    love.graphics.print("(seg) " ..segundos, 115, 10)
+    local contadorvisi = UI_obj_visible[escenas]
+    if contadorvisi then
+        if contadorvisi == true then
+            love.graphics.print("Tiempo jugando: (min)" ..minutos, 10, 0)
+            love.graphics.print("(seg) " ..segundos, 115, 10)
+        end
+    end
     if debug == true then
         love.graphics.print("DT "..dtt, 10, 10)
         love.graphics.print("anim: "..anim, 10, 20)
@@ -993,8 +1035,16 @@ function love.keypressed(key)
     if key == "z" and dial == 2 and escenas == 3 then
         local destino = tienda.seccion_shop[tienda.ysel]
         if destino then
-            dial = destino --compra
+            dial = destino
             tienda.ysel = 62
+        end
+    end
+
+    if key == "z" and escenas == 0 then
+        local menu = menu_valores[tienda.ysel]
+        if menu then
+            escenas = menu.escena
+            accion = 3
         end
     end
 
@@ -1103,7 +1153,9 @@ function love.keypressed(key)
         if key == "z" and gato_valores.xcor >= entrada.xcor2 - entrada.margen2 and gato_valores.xcor <= entrada.xcor2 + entrada.margen2 and gato_valores.ycor >= entrada.ycor2 - entrada.margen2 and gato_valores.ycor <= entrada.ycor2 + entrada.margen2 and escenas == 2 then
             escenas = 4
             accion = 0
-            dial = 1
+            anim = 0
+            dtt = 0
+            dial = 10
         end      
     end
 

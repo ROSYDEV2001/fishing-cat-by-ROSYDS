@@ -23,7 +23,7 @@ dialogo[5] = function()
 end
 
 dialogo[6] = function()
-    return "Gracias por la\nventa ;3, serian: \n " ..
+    return "Gracias ;3,\n serian: \n " ..
         tienda.ganancias .. "$"
 end
 
@@ -37,6 +37,10 @@ dialogo[8] = function()
     return "Genial, que quieres mejorar?\n \n  cap. de gusanos(" ..
         cap_gusanos.costo * cap_gusanos.cant_mejoras .. "):"
 end
+
+dialogo[9] = "\n \n  Nueva pertida \n  Cargar partida \n  Opciones \n  Salir "
+
+dialogo[10] = "Personaliza a tu gato!\n \n  Color \n  Accesorios \n  Salir "
 
 return dialogo
 

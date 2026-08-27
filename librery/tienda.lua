@@ -2,7 +2,7 @@
 
 local tienda = {}
 
-tienda.ysel = 0
+tienda.ysel = 72
 tienda.cantp = 0
 tienda.estashop = 0
 tienda.ganancias = 0
@@ -25,6 +25,8 @@ tienda.limit_shop = {
     [3] = {inicio = 62, limit = 110},
     [7] = {inicio = 62, limit = 74},
     [8] = {inicio = 62, limit = 74},
+    [9] = {inicio = 72, limit = 108},
+    [10] = {inicio = 62, limit = 110},
 }
 
 tienda.seccion_shop = {
@@ -42,6 +44,8 @@ tienda.visible_selec = {
     [6] = false,
     [7] = true,
     [8] = true,
+    [9] = true,
+    [10] = true,
 }
 
 tienda.mejoras = {

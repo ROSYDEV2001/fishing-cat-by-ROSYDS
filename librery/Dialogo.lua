@@ -42,6 +42,10 @@ dialogo[9] = "\n \n  Nueva pertida \n  Cargar partida \n  Opciones \n  Salir "
 
 dialogo[10] = "Personaliza a tu gato!\n \n  Color \n  Accesorios \n  Salir "
 
+dialogo[11] = function ()
+    return "Cambia del gato :D \n \n  R:" .. gato_valores.red .. "\n  G:" .. gato_valores.green .."\n  B:" .. gato_valores.blue
+end
+
 return dialogo
 
 --[[

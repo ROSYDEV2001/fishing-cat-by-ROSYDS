@@ -20,6 +20,7 @@ ANCHO_JUEGO = 500
 ALTO_JUEGO = 400
 entradas_escenas = {
     [1] = {entrada1X = 25, entrada1Y1 = 752, entrada1Y2 = 706, escena = 2, nuevaXcat = 1006, nuevaYcat = 772},
+    [2] = {entrada2X = 1006, entrada1Y1 = 784, entrada1Y2 = 740, escena = 1, nuevaXcat = 30, nuevaYcat = 752},
 }
 dtt = 0
 anim = 12
@@ -27,7 +28,7 @@ accion = 0
 tiempo = 0
 minutos = 0
 segundos = 0
-dial = 10
+dial = 9
 dialDT = 0
 --maps
 mapa_test = require('maps/mapa_test')
@@ -121,7 +122,7 @@ debug = false
 patf = false
 
 --mapas
-escenas = 4
+escenas = 0
 UI_obj_visible = {
     [0] = {bolsa = false, dinero = false, ui_obj = false, jugador = true, camara = false, movimiento = false, contador = false, escena = mapa1},
     [1] = {bolsa = true, dinero = true, ui_obj = true, jugador = true, camara = true, movimiento = true, contador = true, escena = mapa1},
@@ -238,7 +239,7 @@ function love.load()
     faceshop1 = love.graphics.newImage('assets/shop/shop_face1.png')
     selec = love.graphics.newImage('assets/shop/selec.png')
     --musica
-    coin = love.audio.newSource('music/CoinToss.mp3', "static")
+    coin = love.audio.newSource('music/ambient.wav', "static") -- todos saben que el archivo esta mal escrito
     nopesound = love.audio.newSource('music/SFX_DENIED.wav', "static")
     comprasound = love.audio.newSource('music/SFX_PRESS_AB.wav', "static")
     --tiles
@@ -301,7 +302,9 @@ peces_sprite = {
 }
 end
 
-
+function limitarColor(valor)
+    return math.max(0, math.min(255, valor))
+end
 
 function love.update(dt)
     --tiempo del juego
@@ -510,6 +513,29 @@ function love.update(dt)
                     gato_valores.ycor = nuevoY
                 end
             end
+        end
+        if escenas == 4 and dial == 11 then
+            if love.keyboard.isDown("right") and accion <= 0 and tienda.ysel == 74 then
+                gato_valores.red = gato_valores.red + 1
+            elseif love.keyboard.isDown("left") and accion <= 0 and tienda.ysel == 74 then
+                gato_valores.red = gato_valores.red - 1
+            end
+
+            if love.keyboard.isDown("right") and accion <= 0 and tienda.ysel == 86 then
+                gato_valores.green = gato_valores.green + 1
+            elseif love.keyboard.isDown("left") and accion <= 0 and tienda.ysel == 86 then
+                gato_valores.green = gato_valores.green - 1
+            end
+
+            if love.keyboard.isDown("right") and accion <= 0 and tienda.ysel == 98 then
+                gato_valores.blue = gato_valores.blue + 1
+            elseif love.keyboard.isDown("left") and accion <= 0 and tienda.ysel == 98 then
+                gato_valores.blue = gato_valores.blue - 1
+            end
+
+            gato_valores.red = math.max(0, math.min(255, gato_valores.red))
+            gato_valores.green = math.max(0, math.min(255, gato_valores.green))
+            gato_valores.blue = math.max(0, math.min(255, gato_valores.blue))
         end
     end
 
@@ -727,6 +753,13 @@ function love.draw(screen)
         if vible_sprite.jugador == true then
             local sprite_actual = sprites_anim[anim]
             if sprite_actual then
+                love.graphics.setColor(
+                    gato_valores.red / 255,
+                    gato_valores.green / 255,
+                    gato_valores.blue / 255,
+                    1
+                )
+
                 love.graphics.setColor(gato_valores.red / 255, gato_valores.green / 255, gato_valores.blue / 255, 1)
                 love.graphics.draw(sprites_anim[anim], gato_valores.xcor, gato_valores.ycor, 0, gato_valores.scalex, gato_valores.scaley, 64, 64) -- jugador
                 love.graphics.setColor(1, 1, 1, 1)
@@ -836,8 +869,10 @@ function love.draw(screen)
     local contadorvisi = UI_obj_visible[escenas]
     if contadorvisi then
         if contadorvisi == true then
-            love.graphics.print("Tiempo jugando: (min)" ..minutos, 10, 0)
-            love.graphics.print("(seg) " ..segundos, 115, 10)
+            if contadorvisi.contador == true then
+                love.graphics.print("Tiempo jugando: (min)" ..minutos, 10, 0)
+                love.graphics.print("(seg) " ..segundos, 115, 10)
+            end
         end
     end
     if debug == true then
@@ -993,6 +1028,10 @@ function love.keypressed(key)
         dial = 2
     end
 
+    if key == "x" and escenas == 4 and dial == 11 then
+        dial = 10
+    end
+
     if key == "c" and escenas == 3 and dial == 5 then
         dial = 3
     end
@@ -1040,11 +1079,20 @@ function love.keypressed(key)
         end
     end
 
+    if key == "z" and dial == 10 and escenas == 4 then
+        local destino = tienda.seccion_custom[tienda.ysel]
+        if destino then
+            dial = destino
+            tienda.ysel = 62
+        end
+    end
+
     if key == "z" and escenas == 0 then
         local menu = menu_valores[tienda.ysel]
         if menu then
             escenas = menu.escena
             accion = 3
+            dtt = 0
         end
     end
 
@@ -1156,8 +1204,15 @@ function love.keypressed(key)
             anim = 0
             dtt = 0
             dial = 10
+            tienda.ysel = 62
         end      
     end
+
+        if key == "z" and tienda.ysel == 98 and dial == 10 and escenas == 4 then
+            escenas = 2
+            dial = 1
+            tienda.ysel = 62
+        end
 
         if key == "z" and tienda.ysel == 110 and dial == 2 and escenas == 3 then
             escenas = 2

@@ -27,12 +27,18 @@ tienda.limit_shop = {
     [8] = {inicio = 62, limit = 74},
     [9] = {inicio = 72, limit = 108},
     [10] = {inicio = 62, limit = 110},
+    [11] = {inicio = 62, limit = 98},
 }
 
 tienda.seccion_shop = {
     [74] = 3,
     [86] = 7,
     [98] = 8,
+}
+
+tienda.seccion_custom = {
+    [74] = 11,
+    [86] = 11,
 }
 
 tienda.visible_selec = {
@@ -46,6 +52,7 @@ tienda.visible_selec = {
     [8] = true,
     [9] = true,
     [10] = true,
+    [11] = true,
 }
 
 tienda.mejoras = {

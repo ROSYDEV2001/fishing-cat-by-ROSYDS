@@ -1,3 +1,86 @@
+modsActivos = {}
+
+function montarMods()
+    local raizMods = "mods"
+
+    if love.filesystem.isFused() then
+        local baseDir = love.filesystem.getSourceBaseDirectory()
+        local ok = love.filesystem.mount(baseDir, "basegame")
+        if not ok then
+            print("No se pudo acceder a la carpeta base, mods desactivados")
+            return
+        end
+        raizMods = "basegame/mods"
+    end
+
+    if not love.filesystem.getInfo(raizMods) then
+        return
+    end
+
+    local items = love.filesystem.getDirectoryItems(raizMods)
+
+    for _, nombre in ipairs(items) do
+        local rutaVirtual = raizMods .. "/" .. nombre
+        local infoItem = love.filesystem.getInfo(rutaVirtual)
+        local esZip = nombre:match("%.zip$") ~= nil
+
+        if esZip then
+            local filedata, err = love.filesystem.newFileData(rutaVirtual)
+            if filedata then
+                if love.filesystem.mount(filedata, "/") then
+                    print("Mod montado: " .. nombre)
+                    table.insert(modsActivos, nombre)
+                else
+                    print("Fallo al montar mod: " .. nombre)
+                end
+            else
+                print("No se pudo leer " .. nombre .. ": " .. tostring(err))
+            end
+        elseif infoItem and infoItem.type == "directory" then
+            print("Carpeta sin comprimir (" .. nombre .. "): comprimila en .zip.")
+        end
+    end
+end
+
+montarMods()  -- se ejecuta ACÁ MISMO, antes de cualquier require de abajo
+
+function ejecutarModmains()
+    for _, nombre in ipairs(modsActivos) do
+        local carpetaMod = nombre:gsub("%.zip$", "")
+        local rutaModmain = carpetaMod .. "/modmain.lua"
+
+        if love.filesystem.getInfo(rutaModmain) then
+            local chunk, errCarga = love.filesystem.load(rutaModmain)
+            if chunk then
+                local ok, errEjec = pcall(chunk)
+                if ok then
+                    print("modmain.lua ejecutado: " .. nombre)
+                else
+                    print("Error ejecutando modmain.lua de " .. nombre .. ": " .. tostring(errEjec))
+                end
+            else
+                print("No se pudo cargar modmain.lua de " .. nombre .. ": " .. tostring(errCarga))
+            end
+        end
+        -- si no tiene modmain.lua, no imprime nada: es normal para un mod que solo trae assets
+    end
+end
+
+function obtenerCarpetaBase()
+    if love.filesystem.isFused() then
+        -- .exe fusionado: esto sí devuelve la carpeta correcta
+        return love.filesystem.getSourceBaseDirectory()
+    else
+        local src = love.filesystem.getSource()
+        if src:match("%.love$") then
+            -- corriendo un .love suelto: hay que subir un nivel igual
+            return love.filesystem.getSourceBaseDirectory()
+        else
+            -- corriendo desde una carpeta arrastrada: getSource() YA es la carpeta correcta
+            return src
+        end
+    end
+end
 text = "TEST DE MOUSE :3"
 block = 1
 angul = 0
@@ -13,14 +96,18 @@ gato_valores = {
     green = 255,
 }
 
+musica_actual = nil
+musica_saliente = nil
+duracion_fade = 0.8 -- segundos que tarda el cambio completo
+
 menu_valores = {
     [72] = {escena = 1}
 }
 ANCHO_JUEGO = 500
 ALTO_JUEGO = 400
 entradas_escenas = {
-    [1] = {entrada1X = 25, entrada1Y1 = 752, entrada1Y2 = 706, escena = 2, nuevaXcat = 1006, nuevaYcat = 772},
-    [2] = {entrada2X = 1006, entrada1Y1 = 784, entrada1Y2 = 740, escena = 1, nuevaXcat = 30, nuevaYcat = 752},
+    [1] = {limiteX = 25,   comparacion = "menor", entrada1Y1 = 752, entrada1Y2 = 706, escena = 2, nuevaXcat = 990, nuevaYcat = 772},
+    [2] = {limiteX = 1006, comparacion = "mayor", entrada1Y1 = 784, entrada1Y2 = 740, escena = 1, nuevaXcat = 35,  nuevaYcat = 752},
 }
 dtt = 0
 anim = 12
@@ -124,13 +211,14 @@ patf = false
 --mapas
 escenas = 0
 UI_obj_visible = {
-    [0] = {bolsa = false, dinero = false, ui_obj = false, jugador = true, camara = false, movimiento = false, contador = false, escena = mapa1},
-    [1] = {bolsa = true, dinero = true, ui_obj = true, jugador = true, camara = true, movimiento = true, contador = true, escena = mapa1},
-    [2] = {bolsa = true, dinero = true, ui_obj = true, jugador = true, camara = true, movimiento = true, contador = true, escena = city},
-    [3] = {bolsa = false, dinero = true, ui_obj = false, jugador = false, camara = false, movimiento = false, contador = true, escena = nil},
-    [4] = {bolsa = false, dinero = true, ui_obj = false, jugador = true, camara = false, movimiento = false, contador = true, escena = nil},
-    [5] = {bolsa = true, dinero = true, ui_obj = true, jugador = true, camara = true, movimiento = true, contador = true, escena = mapa_test},
+    [0] = {bolsa = false, dinero = false, ui_obj = false, jugador = true, camara = false, movimiento = false, contador = false,music = coin, escena = mapa1},
+    [1] = {bolsa = true, dinero = true, ui_obj = true, jugador = true, camara = true, movimiento = true, contador = true, music = coin, escena = mapa1},
+    [2] = {bolsa = true, dinero = true, ui_obj = true, jugador = true, camara = true, movimiento = true, contador = true, music = coin, escena = city},
+    [3] = {bolsa = false, dinero = true, ui_obj = false, jugador = false, camara = false, movimiento = false, contador = true, music = shop_ost, escena = nil},
+    [4] = {bolsa = false, dinero = true, ui_obj = false, jugador = true, camara = false, movimiento = false, contador = true, music = custom_ost, escena = nil},
+    [5] = {bolsa = true, dinero = true, ui_obj = true, jugador = true, camara = true, movimiento = true, contador = true, music = nil, escena = mapa_test},
 }
+
 -- metatable que hace que cualquier campo faltante devuelva false
 local mt_flags = {__index = function(_, clave) return false end}
 
@@ -155,6 +243,7 @@ fishes = {}
 Xmou=love.mouse.getCursor()
 
 function love.load()
+    ejecutarModmains()
     love.graphics.setDefaultFilter('nearest', 'nearest')
     love.window.setMode(500, 400, {resizable = true})
     
@@ -239,18 +328,61 @@ function love.load()
     faceshop1 = love.graphics.newImage('assets/shop/shop_face1.png')
     selec = love.graphics.newImage('assets/shop/selec.png')
     --musica
-    coin = love.audio.newSource('music/ambient.wav', "static") -- todos saben que el archivo esta mal escrito
+    coin = love.audio.newSource('music/ambient.wav', "stream") -- todos saben que el archivo esta mal escrito
     nopesound = love.audio.newSource('music/SFX_DENIED.wav', "static")
     comprasound = love.audio.newSource('music/SFX_PRESS_AB.wav', "static")
+    custom_ost = love.audio.newSource('music/custom shop (beta).wav', "stream") -- tienda custom song
+    shop_ost = love.audio.newSource('music/shop (beta).wav', "stream") -- tienda song
     --tiles
     tileset = love.graphics.newImage('assets/tiles/tiles_map1.png')
     --mapa
     maptienda = love.graphics.newImage('assets/npc/vendedora.png')
     coin:setLooping(true)
+    shop_ost:setLooping(true)
+    custom_ost:setLooping(true)
     nopesound:setLooping(false)
     comprasound:setLooping(false)
     coin:play()
     tiburocin = love.graphics.newImage('assets/tiburon.png')
+
+    UI_obj_visible[0].music = coin
+    UI_obj_visible[1].music = coin
+    UI_obj_visible[2].music = coin
+    UI_obj_visible[3].music = shop_ost
+    UI_obj_visible[4].music = custom_ost
+
+function actualizarMusica(dt)
+    local datosEscena = UI_obj_visible[escenas]
+    local nuevaMusica = datosEscena and datosEscena.music or nil
+
+    if nuevaMusica ~= musica_actual then
+        if musica_actual then
+            musica_saliente = musica_actual
+        end
+        musica_actual = nuevaMusica
+
+        if musica_actual and not musica_actual:isPlaying() then
+            musica_actual:setVolume(0)
+            musica_actual:play()
+        end
+    end
+
+    if musica_actual then
+        local vol = musica_actual:getVolume() + dt / duracion_fade
+        musica_actual:setVolume(math.min(vol, 1))
+    end
+
+    if musica_saliente then
+        local vol = musica_saliente:getVolume() - dt / duracion_fade
+        if vol <= 0 then
+            musica_saliente:stop()
+            musica_saliente:setVolume(1) -- lo reseteo para la próxima vez que se use
+            musica_saliente = nil
+        else
+            musica_saliente:setVolume(vol)
+        end
+    end
+end
 
 vendedora_cord = {
     [2] = {xcor = 650, ycor = 740, margen = 40, xcor2 = 368, ycor2 = 676, margen2 = 40,}
@@ -300,6 +432,10 @@ peces_sprite = {
     [4] = {nombre = pez3, scale = 1},
     [5] = {nombre = nada3, scale = 1},
 }
+end
+
+function love.conf(t)
+    t.console = true
 end
 
 function limitarColor(valor)
@@ -687,13 +823,23 @@ function love.update(dt)
     end
 
     local entrada = entradas_escenas[escenas]
+
     if entrada then
-        if gato_valores.xcor <= entrada.entrada1X and gato_valores.ycor <= entrada.entrada1Y1 and gato_valores.ycor >= entrada.entrada1Y2 then
+        local cumpleX
+        if entrada.comparacion == "menor" then
+            cumpleX = gato_valores.xcor <= entrada.limiteX
+        else
+            cumpleX = gato_valores.xcor >= entrada.limiteX
+        end
+
+        if cumpleX and gato_valores.ycor <= entrada.entrada1Y1 and gato_valores.ycor >= entrada.entrada1Y2 then
             escenas = entrada.escena
             gato_valores.xcor = entrada.nuevaXcat
             gato_valores.ycor = entrada.nuevaYcat
         end
     end
+
+    actualizarMusica(dt)
 end
 
 function love.draw(screen)
@@ -868,7 +1014,7 @@ function love.draw(screen)
     end
     local contadorvisi = UI_obj_visible[escenas]
     if contadorvisi then
-        if contadorvisi == true then
+        if contadorvisi.contador == true then
             if contadorvisi.contador == true then
                 love.graphics.print("Tiempo jugando: (min)" ..minutos, 10, 0)
                 love.graphics.print("(seg) " ..segundos, 115, 10)
@@ -1196,6 +1342,8 @@ function love.keypressed(key)
         if key == "z" and gato_valores.xcor >= entrada.xcor - entrada.margen and gato_valores.xcor <= entrada.xcor + entrada.margen and gato_valores.ycor >= entrada.ycor - entrada.margen and gato_valores.ycor <= entrada.ycor + entrada.margen and escenas == 2 then
             escenas = 3
             accion = 0
+            anim = 0
+            dtt = 0
             dial = 1
         end   
         if key == "z" and gato_valores.xcor >= entrada.xcor2 - entrada.margen2 and gato_valores.xcor <= entrada.xcor2 + entrada.margen2 and gato_valores.ycor >= entrada.ycor2 - entrada.margen2 and gato_valores.ycor <= entrada.ycor2 + entrada.margen2 and escenas == 2 then

@@ -1,4 +1,4 @@
-modsActivos = {}
+--[[modsActivos = {}
 
 function montarMods()
     local raizMods = "mods"
@@ -64,23 +64,8 @@ function ejecutarModmains()
         end
         -- si no tiene modmain.lua, no imprime nada: es normal para un mod que solo trae assets
     end
-end
+end]]
 
-function obtenerCarpetaBase()
-    if love.filesystem.isFused() then
-        -- .exe fusionado: esto sí devuelve la carpeta correcta
-        return love.filesystem.getSourceBaseDirectory()
-    else
-        local src = love.filesystem.getSource()
-        if src:match("%.love$") then
-            -- corriendo un .love suelto: hay que subir un nivel igual
-            return love.filesystem.getSourceBaseDirectory()
-        else
-            -- corriendo desde una carpeta arrastrada: getSource() YA es la carpeta correcta
-            return src
-        end
-    end
-end
 text = "TEST DE MOUSE :3"
 block = 1
 angul = 0
@@ -184,9 +169,9 @@ furry = 0
 salmon = 0
 peru = 0
 test = 255
-pezitem = 0
 xpez = 290
 ypez = 350
+pezitem = 0 
 dtpez = 0
 pezmode = 0
 pezdt = 0
@@ -240,10 +225,43 @@ inv = 0
 circulos = {}
 cubos = {}
 fishes = {}
-Xmou=love.mouse.getCursor()
+
+local traduccion_botones = {
+    b     = "z",      -- botón B -> sacar caña
+    a     = "x",      -- botón A -> pescar
+    x     = "c",      -- botón X -> abrir inventario
+    y     = "f3",      -- botón Y -> debug
+    up    = "up",
+    down  = "down",
+    left  = "left",
+    right = "right",
+}
+
+mando_a_direccion = {
+    left  = "dpleft",
+    right = "dpright",
+    up    = "dpup",
+    down  = "dpdown",
+}
+
+function estaPresionado(tecla)
+    -- 1) ¿Hay teclado y está esa tecla apretada? (para probar en PC)
+    if love.keyboard and love.keyboard.isDown(tecla) then
+        return true
+    end
+
+    -- 2) Si no, buscamos el mando de la 3DS
+    local mando = love.joystick.getJoysticks()[1]
+    if mando then
+        local boton_mando = mando_a_direccion[tecla] or tecla
+        return mando:isGamepadDown(boton_mando)
+    end
+
+    return false
+end
 
 function love.load()
-    ejecutarModmains()
+    --ejecutarModmains()
     love.graphics.setDefaultFilter('nearest', 'nearest')
     love.window.setMode(500, 400, {resizable = true})
     
@@ -331,8 +349,8 @@ function love.load()
     coin = love.audio.newSource('music/ambient.wav', "stream") -- todos saben que el archivo esta mal escrito
     nopesound = love.audio.newSource('music/SFX_DENIED.wav', "static")
     comprasound = love.audio.newSource('music/SFX_PRESS_AB.wav', "static")
-    custom_ost = love.audio.newSource('music/custom shop (beta).wav', "stream") -- tienda custom song
-    shop_ost = love.audio.newSource('music/shop (beta).wav', "stream") -- tienda song
+    custom_ost = love.audio.newSource('music/custom shop (final).wav', "stream") -- tienda custom song
+    shop_ost = love.audio.newSource('music/shop.wav', "stream") -- tienda song
     --tiles
     tileset = love.graphics.newImage('assets/tiles/tiles_map1.png')
     --mapa
@@ -616,7 +634,7 @@ function love.update(dt)
         if movevalor.movimiento == true then
             local jugador_ancho, jugador_alto = 80, 40  -- ajustable según tu sprite
 
-            if love.keyboard.isDown("left") and accion <= 0 then
+            if estaPresionado("left") and accion <= 0 then
                 local nuevoX = gato_valores.xcor - 2.0
                 local hx, hy, hw, hh = getHitboxEn(nuevoX, gato_valores.ycor)
                 if not colisionaMapa(hx, hy, hw, hh) then
@@ -625,7 +643,7 @@ function love.update(dt)
                 end
             end
 
-            if love.keyboard.isDown("right") and accion <= 0 then
+            if estaPresionado("right") and accion <= 0 then
                 local nuevoX = gato_valores.xcor + 2.0
                 local hx, hy, hw, hh = getHitboxEn(nuevoX, gato_valores.ycor)
                 if not colisionaMapa(hx, hy, hw, hh) then
@@ -634,7 +652,7 @@ function love.update(dt)
                 end
             end
 
-            if love.keyboard.isDown("up") and accion <= 0 then
+            if estaPresionado("up") and accion <= 0 then
                 local nuevoY = gato_valores.ycor - 2.0
                 local hx, hy, hw, hh = getHitboxEn(gato_valores.xcor, nuevoY)
                 if not colisionaMapa(hx, hy, hw, hh) then
@@ -642,7 +660,7 @@ function love.update(dt)
                 end
             end
 
-            if love.keyboard.isDown("down") and accion <= 0 then
+            if estaPresionado("down") and accion <= 0 then
                 local nuevoY = gato_valores.ycor + 2.0
                 local hx, hy, hw, hh = getHitboxEn(gato_valores.xcor, nuevoY)
                 if not colisionaMapa(hx, hy, hw, hh) then
@@ -651,21 +669,21 @@ function love.update(dt)
             end
         end
         if escenas == 4 and dial == 11 then
-            if love.keyboard.isDown("right") and accion <= 0 and tienda.ysel == 74 then
+            if estaPresionado("right") and accion <= 0 and tienda.ysel == 74 then
                 gato_valores.red = gato_valores.red + 1
-            elseif love.keyboard.isDown("left") and accion <= 0 and tienda.ysel == 74 then
+            elseif estaPresionado("left") and accion <= 0 and tienda.ysel == 74 then
                 gato_valores.red = gato_valores.red - 1
             end
 
-            if love.keyboard.isDown("right") and accion <= 0 and tienda.ysel == 86 then
+            if estaPresionado("right") and accion <= 0 and tienda.ysel == 86 then
                 gato_valores.green = gato_valores.green + 1
-            elseif love.keyboard.isDown("left") and accion <= 0 and tienda.ysel == 86 then
+            elseif estaPresionado("left") and accion <= 0 and tienda.ysel == 86 then
                 gato_valores.green = gato_valores.green - 1
             end
 
-            if love.keyboard.isDown("right") and accion <= 0 and tienda.ysel == 98 then
+            if estaPresionado("right") and accion <= 0 and tienda.ysel == 98 then
                 gato_valores.blue = gato_valores.blue + 1
-            elseif love.keyboard.isDown("left") and accion <= 0 and tienda.ysel == 98 then
+            elseif estaPresionado("left") and accion <= 0 and tienda.ysel == 98 then
                 gato_valores.blue = gato_valores.blue - 1
             end
 
@@ -1148,8 +1166,8 @@ function love.draw(screen)
     love.graphics.setScissor()
 end
 
-function love.keypressed(key)
-    if key == "f1" then
+function manejarTecla(tecla_final)
+    if tecla_final == "f1" then
         nemo = nemo + 9999
         furry = furry + 9999
         salmon = salmon + 9999
@@ -1158,48 +1176,48 @@ function love.keypressed(key)
         tienda.dinero = tienda.dinero + 999999999999
     end
     
-    if key == "f5" then
+    if tecla_final == "f5" then
         crearPez(love.math.random(190, -20), love.math.random(200, 400))
     end
 
-    if key == "z" and escenas == 3 and dial <= 1 then
+    if tecla_final == "z" and escenas == 3 and dial <= 1 then
         dial = dial + 1
     end
 
-    if key == "x" and escenas == 3 and dial == 3 or key == "x" and escenas == 3 and dial == 8 then
+    if tecla_final == "x" and escenas == 3 and dial == 3 or tecla_final == "x" and escenas == 3 and dial == 8 then
         dial = 2
     end
 
-    if key == "x" and escenas == 3 and dial == 7 then
+    if tecla_final == "x" and escenas == 3 and dial == 7 then
         dial = 2
     end
 
-    if key == "x" and escenas == 4 and dial == 11 then
+    if tecla_final == "x" and escenas == 4 and dial == 11 then
         dial = 10
     end
 
-    if key == "c" and escenas == 3 and dial == 5 then
+    if tecla_final == "c" and escenas == 3 and dial == 5 then
         dial = 3
     end
 
 
-    if key == "up" and dial >= 2 and dial ~= 4 and dial ~= 5 then
+    if tecla_final == "up" and dial >= 2 and dial ~= 4 and dial ~= 5 then
         tienda.ysel = tienda.ysel - 12
     end
 
-    if key == "down" and dial >= 2 and dial ~= 4 and dial ~= 5 then
+    if tecla_final == "down" and dial >= 2 and dial ~= 4 and dial ~= 5 then
         tienda.ysel = tienda.ysel + 12
     end
 
-    if key == "left" and dial == 5 then
+    if tecla_final == "left" and dial == 5 then
         tienda.cantp = tienda.cantp - 1
     end
 
-    if key == "right" and dial == 5 then
+    if tecla_final == "right" and dial == 5 then
         tienda.cantp = tienda.cantp + 1
     end
 
-    if key == "x" and dial == 5 and escenas == 3 then
+    if tecla_final == "x" and dial == 5 and escenas == 3 then
         tienda.cantp = 9999999999999
     end
     local limits = tienda.limit_shop[dial]
@@ -1217,7 +1235,7 @@ function love.keypressed(key)
         end
     end
 
-    if key == "z" and dial == 2 and escenas == 3 then
+    if tecla_final == "z" and dial == 2 and escenas == 3 then
         local destino = tienda.seccion_shop[tienda.ysel]
         if destino then
             dial = destino
@@ -1225,7 +1243,7 @@ function love.keypressed(key)
         end
     end
 
-    if key == "z" and dial == 10 and escenas == 4 then
+    if tecla_final == "z" and dial == 10 and escenas == 4 then
         local destino = tienda.seccion_custom[tienda.ysel]
         if destino then
             dial = destino
@@ -1233,7 +1251,7 @@ function love.keypressed(key)
         end
     end
 
-    if key == "z" and escenas == 0 then
+    if tecla_final == "z" and escenas == 0 then
         local menu = menu_valores[tienda.ysel]
         if menu then
             escenas = menu.escena
@@ -1242,7 +1260,7 @@ function love.keypressed(key)
         end
     end
 
-    if key == "z" then
+    if tecla_final == "z" then
         local actual = tienda.peces_info[tienda.ysel]
 
         if actual then
@@ -1278,7 +1296,7 @@ function love.keypressed(key)
 
     --compra
 
-    if key == "z" and dial == 7 and escenas == 3 then
+    if tecla_final == "z" and dial == 7 and escenas == 3 then
         local item = tienda.compra_info[tienda.ysel]
 
         if item then
@@ -1297,7 +1315,7 @@ function love.keypressed(key)
     end
 
     --tienda.mejoras
-    if key == "z" and dial == 8 and escenas == 3 then
+    if tecla_final == "z" and dial == 8 and escenas == 3 then
         local itemplus = tienda.mejoras_info[tienda.ysel]
 
         if itemplus then
@@ -1312,7 +1330,7 @@ function love.keypressed(key)
         end
     end
 
-    if key == "c" then
+    if tecla_final == "c" then
         if inv == 0 then
             inv = 1
         elseif inv == 1 then
@@ -1320,7 +1338,7 @@ function love.keypressed(key)
         end
     end
 
-    if key == "f3" then
+    if tecla_final == "f3" then
         if debug == false then
             debug = true
         elseif debug == true then
@@ -1329,24 +1347,24 @@ function love.keypressed(key)
     end
 
     local tiendacord = vendedora_cord[escenas]
-    if key == "z" and accion == 0 and anim <= 1 and (not tiendacord or not (gato_valores.xcor >= tiendacord.xcor - tiendacord.margen and gato_valores.xcor <= tiendacord.xcor + tiendacord.margen and gato_valores.ycor >= tiendacord.ycor - tiendacord.margen and gato_valores.ycor <= tiendacord.ycor + tiendacord.margen)) then
+    if tecla_final == "z" and accion == 0 and anim <= 1 and (not tiendacord or not (gato_valores.xcor >= tiendacord.xcor - tiendacord.margen and gato_valores.xcor <= tiendacord.xcor + tiendacord.margen and gato_valores.ycor >= tiendacord.ycor - tiendacord.margen and gato_valores.ycor <= tiendacord.ycor + tiendacord.margen)) then
         accion = 1
         dtt = 0
     end
 
-    if key == "f6" then
+    if tecla_final == "f6" then
         tienda.ysel = 122
     end
     local entrada = vendedora_cord[escenas]
     if entrada then
-        if key == "z" and gato_valores.xcor >= entrada.xcor - entrada.margen and gato_valores.xcor <= entrada.xcor + entrada.margen and gato_valores.ycor >= entrada.ycor - entrada.margen and gato_valores.ycor <= entrada.ycor + entrada.margen and escenas == 2 then
+        if tecla_final == "z" and gato_valores.xcor >= entrada.xcor - entrada.margen and gato_valores.xcor <= entrada.xcor + entrada.margen and gato_valores.ycor >= entrada.ycor - entrada.margen and gato_valores.ycor <= entrada.ycor + entrada.margen and escenas == 2 then
             escenas = 3
             accion = 0
             anim = 0
             dtt = 0
             dial = 1
         end   
-        if key == "z" and gato_valores.xcor >= entrada.xcor2 - entrada.margen2 and gato_valores.xcor <= entrada.xcor2 + entrada.margen2 and gato_valores.ycor >= entrada.ycor2 - entrada.margen2 and gato_valores.ycor <= entrada.ycor2 + entrada.margen2 and escenas == 2 then
+        if tecla_final == "z" and gato_valores.xcor >= entrada.xcor2 - entrada.margen2 and gato_valores.xcor <= entrada.xcor2 + entrada.margen2 and gato_valores.ycor >= entrada.ycor2 - entrada.margen2 and gato_valores.ycor <= entrada.ycor2 + entrada.margen2 and escenas == 2 then
             escenas = 4
             accion = 0
             anim = 0
@@ -1356,36 +1374,36 @@ function love.keypressed(key)
         end      
     end
 
-        if key == "z" and tienda.ysel == 98 and dial == 10 and escenas == 4 then
+        if tecla_final == "z" and tienda.ysel == 98 and dial == 10 and escenas == 4 then
             escenas = 2
             dial = 1
             tienda.ysel = 62
         end
 
-        if key == "z" and tienda.ysel == 110 and dial == 2 and escenas == 3 then
+        if tecla_final == "z" and tienda.ysel == 110 and dial == 2 and escenas == 3 then
             escenas = 2
             dial = 1
             tienda.ysel = 62
         end
 
-        --[[if key == "z" and xcor >= 270 and xcor <= 314 and ycor >= 180 and ycor <= 200 then
+        --[[if tecla_final == "z" and xcor >= 270 and xcor <= 314 and ycor >= 180 and ycor <= 200 then
             escenas = 4
             accion = 0
             dial = 1
         end]]
     
 
-    if key == "z" and accion == 0 and anim >= 6 and anim <= 7 then
+    if tecla_final == "z" and accion == 0 and anim >= 6 and anim <= 7 then
             anim = 2
             accion = 2
             dtt = 0
         end
 
-        if key == "x" and accion == 4 and tirar_caña.cant_bottom > tirar_caña.veces_bottom then
+        if tecla_final == "x" and accion == 4 and tirar_caña.cant_bottom > tirar_caña.veces_bottom then
             tirar_caña.veces_bottom = tirar_caña.veces_bottom + 1
         end
 
-        if key == "x" and accion == 0 and anim >= 6 and anim <= 7 and gusano >= 1 then
+        if tecla_final == "x" and accion == 0 and anim >= 6 and anim <= 7 and gusano >= 1 then
             local filaFrente, colFrente = tileEnFrente()
             local mapa_actual = UI_obj_visible[escenas].escena
 
@@ -1400,25 +1418,36 @@ function love.keypressed(key)
                     gusano = gusano - 1
                 end
             end
-        elseif key == "x" and accion == 0 and anim >= 6 and anim <= 7 and gusano <= 0 then
+        elseif tecla_final == "x" and accion == 0 and anim >= 6 and anim <= 7 and gusano <= 0 then
             nopesound:play()
         
     end
 
-    if key == "f2" then
+    if tecla_final == "f2" then
             anim = 9
             accion = 3
             dtt = 0
             gusano = gusano + 1
     end
 
-    if key == "f6" then
+    if tecla_final == "f6" then
             escenas = 5
     end
 
-    if key == "f4" then
+    if tecla_final == "f4" then
         love.window.setFullscreen(not love.window.getFullscreen())
     end
+end
+
+-- Teclado real (para probar en PC): sin traducir, tal cual
+function love.keypressed(tecla)
+    manejarTecla(tecla)
+end
+
+-- Mando de la 3DS: acá SÍ se traduce
+function love.gamepadpressed(joystick, boton)
+    local tecla_traducida = traduccion_botones[boton] or boton
+    manejarTecla(tecla_traducida)
 end
 
 function crearPez(x, y)

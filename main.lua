@@ -1,4 +1,4 @@
---[[modsActivos = {}
+modsActivos = {}
 
 function montarMods()
     local raizMods = "mods"
@@ -64,7 +64,7 @@ function ejecutarModmains()
         end
         -- si no tiene modmain.lua, no imprime nada: es normal para un mod que solo trae assets
     end
-end]]
+end
 
 text = "TEST DE MOUSE :3"
 block = 1
@@ -79,6 +79,8 @@ gato_valores = {
     red = 255,
     blue = 255,
     green = 255,
+    estado_UI = 0,
+    estado_UI2 = 1,
 }
 
 musica_actual = nil
@@ -195,6 +197,8 @@ patf = false
 
 --mapas
 escenas = 0
+estado_npc = 0
+dtnpc = 0
 UI_obj_visible = {
     [0] = {bolsa = false, dinero = false, ui_obj = false, jugador = true, camara = false, movimiento = false, contador = false,music = coin, escena = mapa1},
     [1] = {bolsa = true, dinero = true, ui_obj = true, jugador = true, camara = true, movimiento = true, contador = true, music = coin, escena = mapa1},
@@ -203,6 +207,7 @@ UI_obj_visible = {
     [4] = {bolsa = false, dinero = true, ui_obj = false, jugador = true, camara = false, movimiento = false, contador = true, music = custom_ost, escena = nil},
     [5] = {bolsa = true, dinero = true, ui_obj = true, jugador = true, camara = true, movimiento = true, contador = true, music = nil, escena = mapa_test},
 }
+box_dial = false
 
 -- metatable que hace que cualquier campo faltante devuelva false
 local mt_flags = {__index = function(_, clave) return false end}
@@ -261,7 +266,7 @@ function estaPresionado(tecla)
 end
 
 function love.load()
-    --ejecutarModmains()
+    ejecutarModmains()
     love.graphics.setDefaultFilter('nearest', 'nearest')
     love.window.setMode(500, 400, {resizable = true})
     
@@ -314,6 +319,7 @@ function love.load()
     dejar = love.graphics.newImage('assets/inv/dejar.png')
     cbootom = love.graphics.newImage('assets/inv/C_bottom.png')
     pescar = love.graphics.newImage('assets/inv/pesca_X.png')
+    hablar = love.graphics.newImage('assets/inv/talk.png')
     caña = love.graphics.newImage('assets/inv/caña.png')
     pescando = love.graphics.newImage('assets/inv/pescando.png')
     puerta = love.graphics.newImage('assets/inv/puerta.png')
@@ -355,6 +361,8 @@ function love.load()
     tileset = love.graphics.newImage('assets/tiles/tiles_map1.png')
     --mapa
     maptienda = love.graphics.newImage('assets/npc/vendedora.png')
+    mapnpc1 = love.graphics.newImage('assets/npc/npc1.png')
+    mapnpc2 = love.graphics.newImage('assets/npc/npc2.png')
     coin:setLooping(true)
     shop_ost:setLooping(true)
     custom_ost:setLooping(true)
@@ -368,6 +376,11 @@ function love.load()
     UI_obj_visible[2].music = coin
     UI_obj_visible[3].music = shop_ost
     UI_obj_visible[4].music = custom_ost
+
+    sprites_npc = {
+        [0] = {sprite = mapnpc2, framelimt = 0.3, prox = 1, xcor = 280, ycor = 100, escena = 1, margen = 40},
+        [1] = {sprite = mapnpc1, framelimt = 0.3, prox = 0, xcor = 280, ycor = 100, escena = 1, margen = 40},
+    }
 
 function actualizarMusica(dt)
     local datosEscena = UI_obj_visible[escenas]
@@ -857,6 +870,41 @@ function love.update(dt)
         end
     end
 
+    --frame de npc para animacion
+    dtnpc = dtnpc + dt
+
+    local npcspr = sprites_npc[estado_npc]
+        if npcspr then
+            if dtnpc >= npcspr.framelimt then
+                estado_npc = npcspr.prox
+                dtnpc = 0
+            end
+        end
+
+    -- ui assicnada
+    local tiendacord = vendedora_cord[escenas]
+    local npccord = sprites_npc[estado_npc]
+        if anim <= 1 then
+            gato_valores.estado_UI = 0
+            gato_valores.estado_UI2 = 1
+        end
+
+        if anim >= 2 then
+            gato_valores.estado_UI = 1
+            gato_valores.estado_UI2 = 0
+        end
+    if tiendacord then
+        if gato_valores.xcor >= tiendacord.xcor - tiendacord.margen and gato_valores.xcor <= tiendacord.xcor + tiendacord.margen and gato_valores.ycor >= tiendacord.ycor - tiendacord.margen and gato_valores.ycor <= tiendacord.ycor + tiendacord.margen or gato_valores.xcor >= tiendacord.xcor2 - tiendacord.margen2 and gato_valores.xcor <= tiendacord.xcor2 + tiendacord.margen2 and gato_valores.ycor >= tiendacord.ycor2 - tiendacord.margen2 and gato_valores.ycor <= tiendacord.ycor2 + tiendacord.margen2 then
+            gato_valores.estado_UI = 2
+        end
+    end
+
+    if npccord then
+        if gato_valores.xcor >= npccord.xcor - npccord.margen and gato_valores.xcor <= npccord.xcor + npccord.margen and gato_valores.ycor >= npccord.ycor - npccord.margen and gato_valores.ycor <= npccord.ycor + npccord.margen then
+            gato_valores.estado_UI = 3
+        end
+    end
+        
     actualizarMusica(dt)
 end
 
@@ -912,6 +960,13 @@ function love.draw(screen)
         local tiendacord = vendedora_cord[escenas]
         if tiendacord then
             --love.graphics.draw(maptienda, tiendacord.xcor, tiendacord.ycor, 0, 1.5, 1.5,maptienda:getWidth() / 2, maptienda:getHeight() / 2)
+        end
+
+        local npcspr = sprites_npc[estado_npc]
+        if npcspr then
+            if npcspr.escena == escenas then
+                love.graphics.draw(npcspr.sprite, npcspr.xcor, npcspr.ycor, 0, 1, 1, 64, 64)
+            end
         end
 
         if vible_sprite.jugador == true then
@@ -1071,57 +1126,41 @@ function love.draw(screen)
         love.graphics.print("cap_pez:" ..tienda.mejoras.cap_pez, 10, 290)
     end
     if vible_sprite.ui_obj == true then
-        local tiendacord = vendedora_cord[escenas]   -- agregar esta línea acá arriba
-        if tiendacord then
-            if anim <= 1  and not (gato_valores.xcor >= tiendacord.xcor - tiendacord.margen and gato_valores.xcor <= tiendacord.xcor + tiendacord.margen and gato_valores.ycor >= tiendacord.ycor - tiendacord.margen and gato_valores.ycor <= tiendacord.ycor + tiendacord.margen or gato_valores.xcor >= tiendacord.xcor2 - tiendacord.margen2 and gato_valores.xcor <= tiendacord.xcor2 + tiendacord.margen2 and gato_valores.ycor >= tiendacord.ycor2 - tiendacord.margen2 and gato_valores.ycor <= tiendacord.ycor2 + tiendacord.margen2) then
+            if gato_valores.estado_UI == 0 then
                 love.graphics.setColor(1, 1, 1, 1)
                 love.graphics.draw(usar, 10, 324, 0, 0.6, 0.6)
                 love.graphics.draw(caña, 10, 278, 0, 0.7, 0.7)
+            end
+            if gato_valores.estado_UI2 == 1 then
                 love.graphics.setColor(1, 1, 1, 0.5)
                 love.graphics.draw(pescar, 94, 324, 0, 0.6, 0.6)
                 love.graphics.draw(pescando, 94, 278, 0, 0.7, 0.7)
                 love.graphics.setColor(1, 1, 1, 1)
             end
 
-            if anim >= 2 and not (gato_valores.xcor >= tiendacord.xcor - tiendacord.margen and gato_valores.xcor <= tiendacord.xcor + tiendacord.margen and gato_valores.ycor >= tiendacord.ycor - tiendacord.margen and gato_valores.ycor <= tiendacord.ycor + tiendacord.margen or gato_valores.xcor >= tiendacord.xcor2 - tiendacord.margen2 and gato_valores.xcor <= tiendacord.xcor2 + tiendacord.margen2 and gato_valores.ycor >= tiendacord.ycor2 - tiendacord.margen2 and gato_valores.ycor <= tiendacord.ycor2 + tiendacord.margen2) then
+            if gato_valores.estado_UI == 1 then
                 love.graphics.setColor(1, 1, 1, 0.5)
                 love.graphics.draw(caña, 10, 278, 0, 0.7, 0.7)
                 love.graphics.setColor(1, 1, 1, 1)
                 love.graphics.draw(dejar, 10, 324, 0, 0.6, 0.6)
+            end
+            if gato_valores.estado_UI2 == 0 then
                 love.graphics.draw(pescando, 94, 278, 0, 0.7, 0.7)
                 love.graphics.draw(pescar, 94, 324, 0, 0.6, 0.6)
             end
 
-            if gato_valores.xcor >= tiendacord.xcor - tiendacord.margen and gato_valores.xcor <= tiendacord.xcor + tiendacord.margen and gato_valores.ycor >= tiendacord.ycor - tiendacord.margen and gato_valores.ycor <= tiendacord.ycor + tiendacord.margen or gato_valores.xcor >= tiendacord.xcor2 - tiendacord.margen2 and gato_valores.xcor <= tiendacord.xcor2 + tiendacord.margen2 and gato_valores.ycor >= tiendacord.ycor2 - tiendacord.margen2 and gato_valores.ycor <= tiendacord.ycor2 + tiendacord.margen2 then
+            if gato_valores.estado_UI == 2  then
                 love.graphics.setColor(1, 1, 1, 1)
                 love.graphics.draw(usar, 10, 324, 0, 0.6, 0.6)
                 love.graphics.draw(puerta, 10, 278, 0, 0.7, 0.7)
-                love.graphics.setColor(1, 1, 1, 0.5)
-                love.graphics.draw(pescar, 94, 324, 0, 0.6, 0.6)
-                love.graphics.draw(pescando, 94, 278, 0, 0.7, 0.7)
-                love.graphics.setColor(1, 1, 1, 1)
             end
-        else
-            if anim <= 1 then
+
+            if gato_valores.estado_UI == 3 then
                 love.graphics.setColor(1, 1, 1, 1)
                 love.graphics.draw(usar, 10, 324, 0, 0.6, 0.6)
-                love.graphics.draw(caña, 10, 278, 0, 0.7, 0.7)
-                love.graphics.setColor(1, 1, 1, 0.5)
-                love.graphics.draw(pescar, 94, 324, 0, 0.6, 0.6)
-                love.graphics.draw(pescando, 94, 278, 0, 0.7, 0.7)
-                love.graphics.setColor(1, 1, 1, 1)
+                love.graphics.draw(hablar, 10, 278, 0, 0.7, 0.7)
             end
-
-            if anim >= 2 then
-                love.graphics.setColor(1, 1, 1, 0.5)
-                love.graphics.draw(caña, 10, 278, 0, 0.7, 0.7)
-                love.graphics.setColor(1, 1, 1, 1)
-                love.graphics.draw(dejar, 10, 324, 0, 0.6, 0.6)
-                love.graphics.draw(pescando, 94, 278, 0, 0.7, 0.7)
-                love.graphics.draw(pescar, 94, 324, 0, 0.6, 0.6)
-            end
-        end
-
+    
         if gusano >= 0 then
             love.graphics.setFont(monoftlonglong)
             love.graphics.draw(gusanospr, 30, 260, 0, 1, 1)
@@ -1162,6 +1201,17 @@ function love.draw(screen)
     for _, fish in ipairs(fishes) do
         love.graphics.draw(fish.image, fish.x, fish.y)
     end
+
+    --caja de dialogo
+    if box_dial == true then
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.rectangle("fill", 10, 290, 480, 100)
+
+        love.graphics.setColor(0, 0, 0)
+        love.graphics.rectangle("line", 10, 290, 480, 100)
+        love.graphics.setColor(1, 1, 1)
+    end
+
     love.graphics.pop()
     love.graphics.setScissor()
 end
@@ -1347,9 +1397,19 @@ function manejarTecla(tecla_final)
     end
 
     local tiendacord = vendedora_cord[escenas]
-    if tecla_final == "z" and accion == 0 and anim <= 1 and (not tiendacord or not (gato_valores.xcor >= tiendacord.xcor - tiendacord.margen and gato_valores.xcor <= tiendacord.xcor + tiendacord.margen and gato_valores.ycor >= tiendacord.ycor - tiendacord.margen and gato_valores.ycor <= tiendacord.ycor + tiendacord.margen)) then
+    if tecla_final == "z" and accion == 0 and anim <= 1 and gato_valores.estado_UI == 0 then
         accion = 1
         dtt = 0
+    end
+
+    local npccord = sprites_npc[estado_npc]
+    if npccord then
+        if tecla_final == "z" and gato_valores.estado_UI == 3 and gato_valores.estado_UI2 ~= 1 then
+            dial = 1
+            UI_obj_visible[1].ui_obj = false
+            UI_obj_visible[1].movimiento = false
+            box_dial = true
+        end  
     end
 
     if tecla_final == "f6" then
@@ -1357,14 +1417,14 @@ function manejarTecla(tecla_final)
     end
     local entrada = vendedora_cord[escenas]
     if entrada then
-        if tecla_final == "z" and gato_valores.xcor >= entrada.xcor - entrada.margen and gato_valores.xcor <= entrada.xcor + entrada.margen and gato_valores.ycor >= entrada.ycor - entrada.margen and gato_valores.ycor <= entrada.ycor + entrada.margen and escenas == 2 then
+        if tecla_final == "z" and gato_valores.estado_UI == 2 and escenas == 2 then
             escenas = 3
             accion = 0
             anim = 0
             dtt = 0
             dial = 1
         end   
-        if tecla_final == "z" and gato_valores.xcor >= entrada.xcor2 - entrada.margen2 and gato_valores.xcor <= entrada.xcor2 + entrada.margen2 and gato_valores.ycor >= entrada.ycor2 - entrada.margen2 and gato_valores.ycor <= entrada.ycor2 + entrada.margen2 and escenas == 2 then
+        if tecla_final == "z"  and gato_valores.estado_UI == 2 and escenas == 2 then
             escenas = 4
             accion = 0
             anim = 0

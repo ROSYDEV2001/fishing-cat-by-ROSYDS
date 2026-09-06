@@ -206,8 +206,13 @@ UI_obj_visible = {
     [3] = {bolsa = false, dinero = true, ui_obj = false, jugador = false, camara = false, movimiento = false, contador = true, music = shop_ost, escena = nil},
     [4] = {bolsa = false, dinero = true, ui_obj = false, jugador = true, camara = false, movimiento = false, contador = true, music = custom_ost, escena = nil},
     [5] = {bolsa = true, dinero = true, ui_obj = true, jugador = true, camara = true, movimiento = true, contador = true, music = nil, escena = mapa_test},
+    [6] = {bolsa = true, dinero = true, ui_obj = true, jugador = true, camara = true, movimiento = true, contador = true, music = forest_ost, escena = forest},
 }
+--variables de dialogo en npcs
 box_dial = false
+aprox_dial = 0
+faces = facesnpc1
+dtt_dial = 3
 
 -- metatable que hace que cualquier campo faltante devuelva false
 local mt_flags = {__index = function(_, clave) return false end}
@@ -270,7 +275,7 @@ function love.load()
     love.graphics.setDefaultFilter('nearest', 'nearest')
     love.window.setMode(500, 400, {resizable = true})
     
-    love.window.setTitle("fishing cat (0.6 Ver. DEV, Nueva tienda de personalizacion!)")
+    love.window.setTitle("fishing cat (0.7 Ver. DEV)")
     local iconoData = love.image.newImageData('icon/icono.png')
     love.window.setIcon(iconoData)
     --FONT
@@ -278,26 +283,35 @@ function love.load()
     monoftlong = love.graphics.newFont('font/mono.ttf', 18)
     monoftlonglong = love.graphics.newFont('font/mono.ttf', 30)
     -- cat sprite -- normal
-    cat = love.graphics.newImage('assets/player/cat1.png')
-    cat1 = love.graphics.newImage('assets/player/cat2.png')
-    --sacar caña
-    cat2 = love.graphics.newImage('assets/player/cat3.png')
-    cat3 = love.graphics.newImage('assets/player/cat4.png')
-    cat4 = love.graphics.newImage('assets/player/cat5.png')
-    cat5 = love.graphics.newImage('assets/player/cat6.png')
-    -- normal con caña
-    cat6 = love.graphics.newImage('assets/player/cat7.png')
-    cat7 = love.graphics.newImage('assets/player/cat8.png')
-    --pescar
-    cat8 = love.graphics.newImage('assets/player/cat9.png')
-    cat9 = love.graphics.newImage('assets/player/cat10.png')
-    cat10 = love.graphics.newImage('assets/player/cat11.png')
-    cat11 = love.graphics.newImage('assets/player/cat12.png')
-    cat12 = love.graphics.newImage('assets/player/cat13.png')
-    cat13 = love.graphics.newImage('assets/player/cat14.png')
-    cat14 = love.graphics.newImage('assets/player/cat15.png')
-    cat15 = love.graphics.newImage('assets/player/cat16.png')
-    cat16 = love.graphics.newImage('assets/player/cat17.png')
+    cat_frames = {}
+
+    for i = 1, 17 do
+        cat_frames[i] = love.graphics.newImage('assets/player/cat' .. i .. '.png')
+    end
+
+    sprites_anim = {
+        [0]  = cat_frames[1],
+        [1]  = cat_frames[2],
+        [2]  = cat_frames[3],
+        [3]  = cat_frames[4],
+        [4]  = cat_frames[5],
+        [5]  = cat_frames[6],
+        [6]  = cat_frames[7],
+        [7]  = cat_frames[8],
+        [8]  = cat_frames[8],  -- repetido, a propósito
+        [9]  = cat_frames[9],
+        [10] = cat_frames[10],
+        [11] = cat_frames[11],
+        [12] = cat_frames[12],
+        [13] = cat_frames[13],
+        [14] = cat_frames[14],
+        [15] = cat_frames[15],
+        [16] = cat_frames[16],
+        [17] = cat_frames[17],
+    }
+
+    sprites_anim[17] = sprites_anim[16]  -- cat17.png, repetido al final de la secuencia
+    sprites_anim[8] = sprites_anim[7]    -- índice 8 reutiliza el sprite del índice 7
     --peces sprite
     pezind = love.graphics.newImage('assets/peces/mini_pez.png')
     pez1 = love.graphics.newImage('assets/peces/pez.png')
@@ -357,15 +371,22 @@ function love.load()
     comprasound = love.audio.newSource('music/SFX_PRESS_AB.wav', "static")
     custom_ost = love.audio.newSource('music/custom shop (final).wav', "stream") -- tienda custom song
     shop_ost = love.audio.newSource('music/shop.wav', "stream") -- tienda song
+    forest_ost = love.audio.newSource('music/bosque (beta2).wav', "stream") -- bosque
     --tiles
     tileset = love.graphics.newImage('assets/tiles/tiles_map1.png')
     --mapa
     maptienda = love.graphics.newImage('assets/npc/vendedora.png')
     mapnpc1 = love.graphics.newImage('assets/npc/npc1.png')
     mapnpc2 = love.graphics.newImage('assets/npc/npc2.png')
+    --faces dialogo
+    facesnpc1 = love.graphics.newImage('assets/npc/faces/npc-face1.png')
+    facesnpc2 = love.graphics.newImage('assets/npc/faces/npc-face2.png')
+    facesnpc3 = love.graphics.newImage('assets/npc/faces/npc-face3.png')
+    facesnpc4 = love.graphics.newImage('assets/npc/faces/npc-face4.png')
     coin:setLooping(true)
     shop_ost:setLooping(true)
     custom_ost:setLooping(true)
+    forest_ost:setLooping(true)
     nopesound:setLooping(false)
     comprasound:setLooping(false)
     coin:play()
@@ -376,6 +397,7 @@ function love.load()
     UI_obj_visible[2].music = coin
     UI_obj_visible[3].music = shop_ost
     UI_obj_visible[4].music = custom_ost
+    UI_obj_visible[6].music = forest_ost
 
     sprites_npc = {
         [0] = {sprite = mapnpc2, framelimt = 0.3, prox = 1, xcor = 280, ycor = 100, escena = 1, margen = 40},
@@ -435,26 +457,6 @@ for id = 1, 56 do
     )
 end
 
-sprites_anim = {
-    [0] = cat,
-    [1] = cat1,
-    [2] = cat2,
-    [3] = cat3,
-    [4] = cat4,
-    [5] = cat5,
-    [6] = cat6,
-    [7] = cat7,
-    [8] = cat7,
-    [9] = cat8,
-    [10] = cat9,
-    [11] = cat10,
-    [12] = cat11,
-    [13] = cat12,
-    [14] = cat13,
-    [15] = cat14,
-    [16] = cat15,
-    [17] = cat16,
-}
 peces_sprite = {
     [0] = {nombre = cat10, scale = 1},
     [1] = {nombre = pez1, scale = 1},
@@ -474,6 +476,10 @@ function limitarColor(valor)
 end
 
 function love.update(dt)
+    --tiempo de dial
+
+    dtt_dial = dtt_dial - dt
+
     --tiempo del juego
 
     tiempo = tiempo + dt
@@ -882,8 +888,10 @@ function love.update(dt)
         end
 
     -- ui assicnada
-    local tiendacord = vendedora_cord[escenas]
-    local npccord = sprites_npc[estado_npc]
+    tiendacord = vendedora_cord[escenas]
+    tiendacustomcord = vendedora_cord[escenas]
+    npccord = sprites_npc[estado_npc]
+    
         if anim <= 1 then
             gato_valores.estado_UI = 0
             gato_valores.estado_UI2 = 1
@@ -894,13 +902,19 @@ function love.update(dt)
             gato_valores.estado_UI2 = 0
         end
     if tiendacord then
-        if gato_valores.xcor >= tiendacord.xcor - tiendacord.margen and gato_valores.xcor <= tiendacord.xcor + tiendacord.margen and gato_valores.ycor >= tiendacord.ycor - tiendacord.margen and gato_valores.ycor <= tiendacord.ycor + tiendacord.margen or gato_valores.xcor >= tiendacord.xcor2 - tiendacord.margen2 and gato_valores.xcor <= tiendacord.xcor2 + tiendacord.margen2 and gato_valores.ycor >= tiendacord.ycor2 - tiendacord.margen2 and gato_valores.ycor <= tiendacord.ycor2 + tiendacord.margen2 then
+        tiendacord = gato_valores.xcor >= tiendacord.xcor - tiendacord.margen and gato_valores.xcor <= tiendacord.xcor + tiendacord.margen and gato_valores.ycor >= tiendacord.ycor - tiendacord.margen and gato_valores.ycor <= tiendacord.ycor + tiendacord.margen 
+        if tiendacord then
             gato_valores.estado_UI = 2
         end
     end
 
+    if tiendacustomcord then
+        tiendacustomcord = gato_valores.xcor >= tiendacustomcord.xcor2 - tiendacustomcord.margen2 and gato_valores.xcor <= tiendacustomcord.xcor2 + tiendacustomcord.margen2 and gato_valores.ycor >= tiendacustomcord.ycor2 - tiendacustomcord.margen2 and gato_valores.ycor <= tiendacustomcord.ycor2 + tiendacustomcord.margen2
+    end
+
     if npccord then
-        if gato_valores.xcor >= npccord.xcor - npccord.margen and gato_valores.xcor <= npccord.xcor + npccord.margen and gato_valores.ycor >= npccord.ycor - npccord.margen and gato_valores.ycor <= npccord.ycor + npccord.margen then
+        npccord = gato_valores.xcor >= npccord.xcor - npccord.margen and gato_valores.xcor <= npccord.xcor + npccord.margen and gato_valores.ycor >= npccord.ycor - npccord.margen and gato_valores.ycor <= npccord.ycor + npccord.margen
+        if npccord then
             gato_valores.estado_UI = 3
         end
     end
@@ -956,11 +970,6 @@ function love.draw(screen)
         
         
         love.graphics.setFont(monoft)
-
-        local tiendacord = vendedora_cord[escenas]
-        if tiendacord then
-            --love.graphics.draw(maptienda, tiendacord.xcor, tiendacord.ycor, 0, 1.5, 1.5,maptienda:getWidth() / 2, maptienda:getHeight() / 2)
-        end
 
         local npcspr = sprites_npc[estado_npc]
         if npcspr then
@@ -1073,6 +1082,7 @@ function love.draw(screen)
             end
         end
 
+        
     if pezitem >= 1 then
         local spritepez = peces_sprite[pezitem]
         if spritepez then
@@ -1124,6 +1134,7 @@ function love.draw(screen)
         love.graphics.print("cant_bottom:" ..tirar_caña.cant_bottom, 10, 270)
         love.graphics.print("veces_bottom:" ..tirar_caña.veces_bottom, 10, 280)
         love.graphics.print("cap_pez:" ..tienda.mejoras.cap_pez, 10, 290)
+        print(dtt_dial)
     end
     if vible_sprite.ui_obj == true then
             if gato_valores.estado_UI == 0 then
@@ -1210,6 +1221,19 @@ function love.draw(screen)
         love.graphics.setColor(0, 0, 0)
         love.graphics.rectangle("line", 10, 290, 480, 100)
         love.graphics.setColor(1, 1, 1)
+    end
+    local faces = faces
+    if faces then
+        if gato_valores.estado_UI == 3 and UI_obj_visible[escenas].ui_obj == false then
+            love.graphics.draw(faces, 355, 161, 0, 1, 1)
+            love.graphics.setColor(0, 0, 0, 1)
+            love.graphics.print(text, 15, 300)
+            love.graphics.setColor(1, 1, 1, 1)
+            local visible = tienda.visible_selec[dial]
+            if visible == true then
+                love.graphics.draw(selec, 25, tienda.ysel, 0, 0.2, 0.2)
+            end
+        end
     end
 
     love.graphics.pop()
@@ -1306,7 +1330,7 @@ function manejarTecla(tecla_final)
         if menu then
             escenas = menu.escena
             accion = 3
-            dtt = 0
+            dtt = 5.6
         end
     end
 
@@ -1396,43 +1420,45 @@ function manejarTecla(tecla_final)
         end
     end
 
-    local tiendacord = vendedora_cord[escenas]
     if tecla_final == "z" and accion == 0 and anim <= 1 and gato_valores.estado_UI == 0 then
         accion = 1
         dtt = 0
     end
 
+    if tecla_final == "z" and gato_valores.estado_UI == 3 and dtt_dial <= 0 then
+        dial = aprox_dial
+    end
+
     local npccord = sprites_npc[estado_npc]
     if npccord then
         if tecla_final == "z" and gato_valores.estado_UI == 3 and gato_valores.estado_UI2 ~= 1 then
-            dial = 1
+            dial = 12
             UI_obj_visible[1].ui_obj = false
             UI_obj_visible[1].movimiento = false
             box_dial = true
+            dtt_dial = 3
         end  
     end
 
     if tecla_final == "f6" then
         tienda.ysel = 122
     end
-    local entrada = vendedora_cord[escenas]
-    if entrada then
-        if tecla_final == "z" and gato_valores.estado_UI == 2 and escenas == 2 then
+
+        if tecla_final == "z" and tiendacord and gato_valores.estado_UI == 2 and escenas == 2 then
             escenas = 3
             accion = 0
             anim = 0
             dtt = 0
             dial = 1
         end   
-        if tecla_final == "z"  and gato_valores.estado_UI == 2 and escenas == 2 then
+        if tecla_final == "z" and tiendacustomcord and gato_valores.estado_UI == 2 and escenas == 2 then
             escenas = 4
             accion = 0
             anim = 0
             dtt = 0
             dial = 10
             tienda.ysel = 62
-        end      
-    end
+        end
 
         if tecla_final == "z" and tienda.ysel == 98 and dial == 10 and escenas == 4 then
             escenas = 2

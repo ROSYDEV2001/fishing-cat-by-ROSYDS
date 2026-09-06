@@ -46,6 +46,18 @@ dialogo[11] = function ()
     return "Cambia del gato :D \n \n  R:" .. gato_valores.red .. "\n  G:" .. gato_valores.green .."\n  B:" .. gato_valores.blue
 end
 
+dialogo[12] = function () -- npc dial
+    faces = facesnpc3
+    aprox_dial = 13
+    return "When haces tus text en tu juego: eres un genio!"
+end
+
+dialogo[13] = function () -- npc dial2
+    faces = facesnpc1
+    aprox_dial = 12
+    return "ses"
+end
+
 return dialogo
 
 --[[

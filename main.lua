@@ -65,10 +65,9 @@ function ejecutarModmains()
         -- si no tiene modmain.lua, no imprime nada: es normal para un mod que solo trae assets
     end
 end
-
+simular_tactil_en_pc = true -- poné esto en false antes de armar el build final de Android
 text = "TEST DE MOUSE :3"
 block = 1
-angul = 0
 gato_valores = {
     xcor = 260,
     ycor = 200,
@@ -212,7 +211,9 @@ UI_obj_visible = {
 box_dial = false
 aprox_dial = 0
 faces = facesnpc1
+dtt_dial_aprox = 1
 dtt_dial = 3
+angul_star = 0
 
 -- metatable que hace que cualquier campo faltante devuelva false
 local mt_flags = {__index = function(_, clave) return false end}
@@ -235,6 +236,186 @@ inv = 0
 circulos = {}
 cubos = {}
 fishes = {}
+
+-- variables que love.update arma en runtime: las inicializamos como
+-- tablas vacías para que un "z" apretado antes del primer love.update
+-- no explote al indexarlas (ver npccord más abajo)
+npccord = {}
+tiendacord = {}
+tiendacustomcord = {}
+
+-- JOYSTICK VIRTUAL (pantalla táctil / Android) ---------------------
+esAndroid = love.system.getOS() == "Android"
+
+joystick_virtual = {
+    activo = false,
+    touch_id = nil,
+    margen = 20,       -- distancia fija al borde, en px de juego
+    centro_x = 0,
+    centro_y = 0,
+    stick_x = 0,
+    stick_y = 0,
+    radio = 50,
+    radio_stick = 28,
+    dir = {left = false, right = false, up = false, down = false},
+}
+
+function actualizarPosicionJoystick()
+    local alto = love.graphics.getHeight()
+    joystick_virtual.centro_x = joystick_virtual.margen + joystick_virtual.radio
+    joystick_virtual.centro_y = alto - joystick_virtual.margen - joystick_virtual.radio
+    joystick_virtual.stick_x = joystick_virtual.centro_x
+    joystick_virtual.stick_y = joystick_virtual.centro_y
+end
+
+botones_virtuales = {
+    {posicion = "derecha",   tecla = "z", radio = 32, x = 0, y = 0, tocado = false, touch_id = nil},
+    {posicion = "izquierda",tecla = "x", radio = 32, x = 0, y = 0, tocado = false, touch_id = nil},
+    {posicion = "arriba",  tecla = "c", radio = 32, x = 0, y = 0, tocado = false, touch_id = nil},
+}
+
+function actualizarPosicionBotones()
+    local ancho = love.graphics.getWidth()
+    local alto = love.graphics.getHeight()
+    local margen = 20
+    local spacing = 70
+
+    local base_x = ancho - margen - 28 - spacing
+    local base_y = alto - margen - 28
+
+    for _, boton in ipairs(botones_virtuales) do
+        if boton.posicion == "derecha" then
+            boton.x = base_x + spacing
+            boton.y = base_y
+        elseif boton.posicion == "izquierda" then
+            boton.x = base_x
+            boton.y = base_y
+        elseif boton.posicion == "arriba" then
+            boton.x = base_x + spacing / 2
+            boton.y = base_y - spacing
+        end
+    end
+end
+
+-- convierte coordenadas de pantalla real a coordenadas del juego (500x400),
+-- respetando el mismo escalado/offset que usa love.draw
+function pantallaAJuego(x, y)
+    local ancho = love.graphics.getWidth()
+    local alto = love.graphics.getHeight()
+    local escala = math.min(ancho / ANCHO_JUEGO, alto / ALTO_JUEGO)
+    local offsetX = (ancho - ANCHO_JUEGO * escala) / 2
+    local offsetY = (alto - ALTO_JUEGO * escala) / 2
+    return (x - offsetX) / escala, (y - offsetY) / escala
+end
+
+function love.touchreleased(id, x, y)
+    if not (esAndroid or simular_tactil_en_pc) then return end
+
+    if joystick_virtual.activo and joystick_virtual.touch_id == id then
+        joystick_virtual.activo = false
+        joystick_virtual.touch_id = nil
+        joystick_virtual.stick_x = joystick_virtual.centro_x
+        joystick_virtual.stick_y = joystick_virtual.centro_y
+        joystick_virtual.dir.left = false
+        joystick_virtual.dir.right = false
+        joystick_virtual.dir.up = false
+        joystick_virtual.dir.down = false
+    end
+
+    -- BOTONES Z / X / C: liberar el botón que soltaron
+    for _, boton in ipairs(botones_virtuales) do
+        if boton.tocado and boton.touch_id == id then
+            boton.tocado = false
+            boton.touch_id = nil
+        end
+    end
+end
+
+-- Función propia, NO depende de que love.touchpressed exista
+function manejarToquePresionado(id, x, y)
+    if not (esAndroid or simular_tactil_en_pc) then
+        return
+    end
+
+    -- JOYSTICK
+    if not joystick_virtual.activo then
+        local dx = x - joystick_virtual.centro_x
+        local dy = y - joystick_virtual.centro_y
+        local dist = math.sqrt(dx * dx + dy * dy)
+
+        if dist <= joystick_virtual.radio * 1.5 then
+            joystick_virtual.activo = true
+            joystick_virtual.touch_id = id
+            return
+        end
+    end
+
+    -- BOTONES Z / X / C
+    for _, boton in ipairs(botones_virtuales) do
+        if not boton.tocado then
+            local dx = x - boton.x
+            local dy = y - boton.y
+            local dist = math.sqrt(dx * dx + dy * dy)
+
+            if dist <= boton.radio then
+                boton.tocado = true
+                boton.touch_id = id
+                manejarTecla(boton.tecla)
+                return
+            end
+        end
+    end
+end
+
+function love.touchpressed(id, x, y)
+    manejarToquePresionado(id, x, y)
+end
+
+function love.mousepressed(x, y, boton)
+    if boton == 1 then
+        manejarToquePresionado("mouse", x, y)
+    end
+end
+
+-- Función propia, NO depende de que love.touchmoved exista
+function manejarToqueMovido(id, x, y)
+    if not (esAndroid or simular_tactil_en_pc) then return end
+
+    if joystick_virtual.activo and joystick_virtual.touch_id == id then
+        local dx = x - joystick_virtual.centro_x
+        local dy = y - joystick_virtual.centro_y
+        local dist = math.sqrt(dx * dx + dy * dy)
+
+        if dist > joystick_virtual.radio then
+            dx = dx / dist * joystick_virtual.radio
+            dy = dy / dist * joystick_virtual.radio
+        end
+
+        joystick_virtual.stick_x = joystick_virtual.centro_x + dx
+        joystick_virtual.stick_y = joystick_virtual.centro_y + dy
+
+        local umbral = joystick_virtual.radio * 0.35
+
+        joystick_virtual.dir.left  = dx < -umbral
+        joystick_virtual.dir.right = dx > umbral
+        joystick_virtual.dir.up    = dy < -umbral
+        joystick_virtual.dir.down  = dy > umbral
+    end
+end
+
+function love.touchmoved(id, x, y)
+    manejarToqueMovido(id, x, y)
+end
+
+function love.mousemoved(x, y)
+    manejarToqueMovido("mouse", x, y)
+end
+
+function love.mousereleased(x, y, boton)
+    if boton == 1 then
+        love.touchreleased("mouse", x, y)
+    end
+end
 
 local traduccion_botones = {
     b     = "z",      -- botón B -> sacar caña
@@ -264,7 +445,14 @@ function estaPresionado(tecla)
     local mando = love.joystick.getJoysticks()[1]
     if mando then
         local boton_mando = mando_a_direccion[tecla] or tecla
-        return mando:isGamepadDown(boton_mando)
+        if mando:isGamepadDown(boton_mando) then
+            return true
+        end
+    end
+
+    -- 3) Joystick virtual táctil (Android)
+    if joystick_virtual.dir[tecla] then
+        return true
     end
 
     return false
@@ -274,12 +462,15 @@ function love.load()
     ejecutarModmains()
     love.graphics.setDefaultFilter('nearest', 'nearest')
     love.window.setMode(500, 400, {resizable = true})
+    actualizarPosicionJoystick()
+    actualizarPosicionBotones() 
     
-    love.window.setTitle("fishing cat (0.7 Ver. DEV)")
+    love.window.setTitle("fishing cat (Alpha 0.8)")
     local iconoData = love.image.newImageData('icon/icono.png')
     love.window.setIcon(iconoData)
     --FONT
     monoft = love.graphics.newFont('font/mono.ttf', 12)
+    monoftminilong = love.graphics.newFont('font/mono.ttf', 16)
     monoftlong = love.graphics.newFont('font/mono.ttf', 18)
     monoftlonglong = love.graphics.newFont('font/mono.ttf', 30)
     -- cat sprite -- normal
@@ -339,6 +530,7 @@ function love.load()
     puerta = love.graphics.newImage('assets/inv/puerta.png')
     bottom_x_1 = love.graphics.newImage('assets/inv/bottom_x_1.png')
     bottom_x_2 = love.graphics.newImage('assets/inv/bottom_x_2.png')
+    star = love.graphics.newImage('assets/inv/star.png')
     --obj
     gusanospr = love.graphics.newImage('assets/obj/gusano2.png')
     barra = love.graphics.newImage('assets/obj/barra.png')
@@ -444,6 +636,11 @@ TILE_SRC = 32  -- tamaño de cada tile DENTRO de la imagen
 
 tile_quads = {}
 
+function love.resize(w, h)
+    actualizarPosicionJoystick()
+    actualizarPosicionBotones()
+end
+
 for id = 1, 56 do
     local columna = (id - 1) % 8
     local fila = math.floor((id - 1) / 8)
@@ -476,6 +673,14 @@ function limitarColor(valor)
 end
 
 function love.update(dt)
+    --angulo de star dialogo
+
+    angul_star = angul_star + 0.1
+
+    if angul_star >= 360 then
+        angul_star = 0
+    end
+
     --tiempo de dial
 
     dtt_dial = dtt_dial - dt
@@ -910,14 +1115,25 @@ function love.update(dt)
 
     if tiendacustomcord then
         tiendacustomcord = gato_valores.xcor >= tiendacustomcord.xcor2 - tiendacustomcord.margen2 and gato_valores.xcor <= tiendacustomcord.xcor2 + tiendacustomcord.margen2 and gato_valores.ycor >= tiendacustomcord.ycor2 - tiendacustomcord.margen2 and gato_valores.ycor <= tiendacustomcord.ycor2 + tiendacustomcord.margen2
+        if tiendacustomcord then
+            gato_valores.estado_UI = 2
+        end
     end
 
     if npccord then
-        npccord = gato_valores.xcor >= npccord.xcor - npccord.margen and gato_valores.xcor <= npccord.xcor + npccord.margen and gato_valores.ycor >= npccord.ycor - npccord.margen and gato_valores.ycor <= npccord.ycor + npccord.margen
-        if npccord then
+        npccord = {dial = 12, cond = gato_valores.xcor >= npccord.xcor - npccord.margen and gato_valores.xcor <= npccord.xcor + npccord.margen and gato_valores.ycor >= npccord.ycor - npccord.margen and gato_valores.ycor <= npccord.ycor + npccord.margen}
+        if npccord.cond then
             gato_valores.estado_UI = 3
         end
     end
+
+    if dial == 14 then
+            dial = 1
+            UI_obj_visible[1].ui_obj = true
+            UI_obj_visible[1].movimiento = true
+            box_dial = false
+            dtt_dial = 1
+    end  
         
     actualizarMusica(dt)
 end
@@ -1225,19 +1441,37 @@ function love.draw(screen)
     local faces = faces
     if faces then
         if gato_valores.estado_UI == 3 and UI_obj_visible[escenas].ui_obj == false then
+            love.graphics.setFont(monoftminilong)
             love.graphics.draw(faces, 355, 161, 0, 1, 1)
             love.graphics.setColor(0, 0, 0, 1)
             love.graphics.print(text, 15, 300)
             love.graphics.setColor(1, 1, 1, 1)
+            love.graphics.setFont(monoft)
             local visible = tienda.visible_selec[dial]
             if visible == true then
                 love.graphics.draw(selec, 25, tienda.ysel, 0, 0.2, 0.2)
             end
+            if dtt_dial <= 0 then
+                love.graphics.draw(star, 460, 365, angul_star, 0.3, 0.3, 64, 64)
+            end
         end
     end
-
+    
     love.graphics.pop()
     love.graphics.setScissor()
+
+        -- joystick virtual: el aro siempre visible, el punto se mueve solo mientras se usa
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.circle("line", joystick_virtual.centro_x, joystick_virtual.centro_y, joystick_virtual.radio)
+    love.graphics.circle("fill", joystick_virtual.stick_x, joystick_virtual.stick_y, joystick_virtual.radio_stick)
+
+    for _, boton in ipairs(botones_virtuales) do
+        if boton.tocado then
+            love.graphics.circle("fill", boton.x, boton.y, boton.radio)
+        else
+            love.graphics.circle("line", boton.x, boton.y, boton.radio)
+        end
+    end
 end
 
 function manejarTecla(tecla_final)
@@ -1427,16 +1661,16 @@ function manejarTecla(tecla_final)
 
     if tecla_final == "z" and gato_valores.estado_UI == 3 and dtt_dial <= 0 then
         dial = aprox_dial
+        dtt_dial = dtt_dial_aprox
     end
 
-    local npccord = sprites_npc[estado_npc]
-    if npccord then
-        if tecla_final == "z" and gato_valores.estado_UI == 3 and gato_valores.estado_UI2 ~= 1 then
-            dial = 12
+    if npccord and npccord.cond and not box_dial then
+        if tecla_final == "z" and gato_valores.estado_UI == 3 then
+            dial = npccord.dial
             UI_obj_visible[1].ui_obj = false
             UI_obj_visible[1].movimiento = false
             box_dial = true
-            dtt_dial = 3
+            dtt_dial = dtt_dial_aprox
         end  
     end
 

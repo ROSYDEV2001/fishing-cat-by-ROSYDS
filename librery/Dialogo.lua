@@ -38,24 +38,52 @@ dialogo[8] = function()
         cap_gusanos.costo * cap_gusanos.cant_mejoras .. "):"
 end
 
-dialogo[9] = "\n \n  Nueva pertida \n  Cargar partida \n  Opciones \n  Salir "
+dialogo[9] = "\n \n  Nueva pertida \n  Cargar partida(aun no) \n  Opciones(aun no) \n  Salir(aun no) "
 
-dialogo[10] = "Personaliza a tu gato!\n \n  Color \n  Accesorios \n  Salir "
+dialogo[10] = "Personaliza a tu gato!\n \n  Color \n  Accesorios(aun no) \n  Salir "
 
 dialogo[11] = function ()
-    return "Cambia del gato :D \n \n  R:" .. gato_valores.red .. "\n  G:" .. gato_valores.green .."\n  B:" .. gato_valores.blue
+    return "Cambia del gato :D (usa izq, y der :3)\n \n  R:" .. gato_valores.red .. "\n  G:" .. gato_valores.green .."\n  B:" .. gato_valores.blue
 end
 
 dialogo[12] = function () -- npc dial
-    faces = facesnpc3
+    faces = facesnpc1
     aprox_dial = 13
-    return "When haces tus text en tu juego: eres un genio!"
+    dtt_dial_aprox = 0.5
+    return "HOLISSSS, a Fishing cat!"
 end
 
 dialogo[13] = function () -- npc dial2
-    faces = facesnpc1
-    aprox_dial = 12
-    return "ses"
+    faces = facesnpc2
+    aprox_dial = 15
+    dtt_dial_aprox = 1
+    return "Esto ni es una demo lol, pero espero que lo disfrute,\ndisfruta esta version DEV :D"
+end
+
+dialogo[14] = function () -- salir de dialogo
+    dtt_dial_aprox = 1
+    return " "
+end
+
+dialogo[15] = function () -- npc dial2
+    faces = facesnpc3
+    aprox_dial = 16
+    dtt_dial_aprox = 0.5
+    return "Muevete con las flecha, la C para ver los pecez\ncon Z sacas la caña X pescas"
+end
+
+dialogo[16] = function () -- npc dial2
+    faces = facesnpc3
+    aprox_dial = 17
+    dtt_dial_aprox = 0.5
+    return "ve a la izquierda-bajo para ir a la cuidad,\ncompra y custumiza al gato :3"
+end
+
+dialogo[17] = function () -- npc dial2
+    faces = facesnpc2
+    aprox_dial = 14 --final
+    dtt_dial_aprox = 0.5
+    return "Me llamo Testela y espero que disfrutes bye!"
 end
 
 return dialogo
